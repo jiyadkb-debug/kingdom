@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>عرش الرماد</title>
+<style>
+  body {
+    margin: 0; padding: 24px; min-height: 100vh;
+    background: #151923; color: #f3ead7;
+    font-family: system-ui, sans-serif;
+  }
+  main {
+    max-width: 650px; margin: 5vh auto; padding: 28px;
+    background: #222936; border: 1px solid #55505a;
+    border-radius: 16px; box-shadow: 0 12px 35px #0007;
+  }
+  h1 { color: #e7bd75; margin-top: 0; }
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+  .stat { background: #303949; padding: 10px 14px; border-radius: 10px; }
+  #story { line-height: 1.9; min-height: 100px; }
+  button {
+    display: block; width: 100%; margin: 10px 0; padding: 13px;
+    border: 1px solid #796644; border-radius: 9px;
+    background: #3a3440; color: white; font-size: 16px;
+    text-align: right; cursor: pointer;
+  }
+  button:hover { background: #544458; }
+  #restart { text-align: center; background: #725126; }
+</style>
+
+<main>
+  <h1>👑 عرش الرماد</h1>
+  <p>المملكة بلا حاكم، والنبلاء يتنافسون على التاج. قراراتك ستحدد مصيرها.</p>
+
+  <div class="stats">
+    <div class="stat">النفوذ: <span id="influence">3</span></div>
+    <div class="stat">الجيش: <span id="army">3</span></div>
+    <div class="stat">الذهب: <span id="gold">3</span></div>
+  </div>
+
+  <p id="story"></p>
+  <div id="choices"></div>
+  <p id="ending"></p>
+  <button id="restart" onclick="startGame()">ابدأ من جديد</button>
+</main>
+
+<script>
+const events = [
+  {
+    story: "وصلت إلى العاصمة «فالمر». قائد الحرس يعرض دعمك، لكنه يطلب مكافأة.",
+    choices: [
+      ["تمنحه الذهب ليقف معك", {gold: -1, army: 2, influence: 1}],
+      ["تَعِده بمنصب بعد التتويج", {influence: 2}],
+      ["ترفض وتستميل النبلاء بدلًا منه", {gold: 1, influence: 1, army: -1}]
+    ]
+  },
+  {
+    story: "أهل الشمال يواجهون شتاءً قاسيًا. إرسال المؤن سيكسبك ولاءهم، لكنه مكلف.",
+    choices: [
+      ["أرسل المؤن", {gold: -2, influence: 2}],
+      ["أرسل الجنود لحماية القوافل", {army: -1, influence: 1}],
+      ["احتفظ بمواردك", {gold: 1, influence: -1}]
+    ]
+  },
+  {
+    story: "تاجر ثري يعرض تمويل حملتك مقابل امتيازات تجارية واسعة.",
+    choices: [
+      ["اقبل الصفقة", {gold: 3, influence: -1}],
+      ["ارفضها حفاظًا على استقلال المملكة", {influence: 1}],
+      ["فاوضه على تمويل أقل", {gold: 1, influence: 1}]
+    ]
+  },
+  {
+    story: "خصمك يقترب من العاصمة. أمامك فرصة لمواجهته أو محاولة إقناعه بالتراجع.",
+    choices: [
+      ["واجهه في ساحة المعركة", {army: -1, influence: 2}],
+      ["اعرض عليه تحالفًا", {gold: -1, influence: 2}],
+      ["حصّن المدينة وانتظر", {army: 1, gold: -1}]
+    ]
+  },
+  {
+    story: "اجتمع كبار النبلاء لاختيار الحاكم. كل واحد منهم يترقب قرارك الأخير.",
+    choices: [
+      ["أعلن برنامجًا لإصلاح المملكة", {influence: 2}],
+      ["قدّم مكافآت للبيوت المترددة", {gold: -2, influence: 2}],
+      ["اعتمد على قوة جيشك", {army: 2, influence: -1}]
+    ]
+  }
+];
+
+let influence, army, gold, turn, ended;
+
+function startGame() {
+  influence = 3; army = 3; gold = 3; turn = 0; ended = false;
+  document.getElementById("ending").textContent = "";
+  showEvent();
+}
+
+function updateStats() {
+  document.getElementById("influence").textContent = influence;
+  document.getElementById("army").textContent = army;
+  document.getElementById("gold").textContent = gold;
+}
+
+function showEvent() {
+  updateStats();
+  if (influence <= 0 || army <= 0 || gold <= 0) {
+    endGame("خسرت صراع العرش؛ نفد أحد أهم مواردك قبل حسم المنافسة.");
+    return;
+  }
+  if (turn >= events.length) {
+    if (influence >= 7) endGame("تُوّجت حاكمًا! كسبت ثقة المملكة وصعدت إلى العرش 👑");
+    else if (army >= 7) endGame("استولى جيشك على العاصمة، وأصبحت الحاكم بالقوة ⚔️");
+    else endGame("لم يحسم أحد الصراع. المملكة دخلت فترة اضطراب...");
+    return;
+  }
+
+  const event = events[turn];
+  document.getElementById("story").textContent = event.story;
+  const box = document.getElementById("choices");
+  box.innerHTML = "";
+
+  event.choices.forEach(([label, effect]) => {
+    const button = document.createElement("button");
+    button.textContent = label;
+    button.onclick = () => {
+      influence += effect.influence || 0;
+      army += effect.army || 0;
+      gold += effect.gold || 0;
+      turn++;
+      showEvent();
+    };
+    box.appendChild(button);
+  });
+}
+
+function endGame(text) {
+  ended = true;
+  document.getElementById("story").textContent = "انتهى الصراع.";
+  document.getElementById("choices").innerHTML = "";
+  document.getElementById("ending").textContent = text;
+  updateStats();
+}
+
+startGame();
+</script>
